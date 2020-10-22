@@ -28,6 +28,7 @@ if (isMaster) {
 | `options.clientOptions`  	| An object of client options you want to pass to the Discord.js client constructor.                                                                              	|
 | `options.clusterCount`   	| The number of how many clusters you want. Defaults to the amount of cores.                                                                                      	|
 | `options.shardCount`     	| The number of how many shards you want. Defaults to the amount that the gateway recommends, taking `options.guildsPerShard`into account.                        	|
+| `options.shardList`     	| Array of shards to spawn or "auto".                        	|
 | `options.development`    	| Boolean to enable development mode.                                                                                                                             	|
 | `options.client`         	| Class extending the Discord.js client you want to use for your clusters (useful for Frameworks like Commando, Klasa, or Akairo). Defaults to Discord.js client. 	|
 | `options.guildsPerShard` 	| Number to calculate how many guilds per shard. Defaults to 1000. Ignored if you set shardCount.                                                                 	|

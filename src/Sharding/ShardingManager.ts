@@ -22,6 +22,7 @@ export interface SharderOptions {
 	timeout?: number;
 	retry?: boolean;
 	nodeArgs?: Array<string>;
+	shardList?: number[] | 'auto';
 }
 
 export interface SessionObject {
@@ -53,7 +54,7 @@ export class ShardingManager extends EventEmitter {
 	public retry: boolean;
 	public nodeArgs?: Array<string>;
 	public ipc: MasterIPC;
-
+	public shardList: number[] | 'auto';
 	private readonly development: boolean;
 	private readonly token?: string;
 
@@ -72,7 +73,8 @@ export class ShardingManager extends EventEmitter {
 		this.token = options.token;
 		this.nodeArgs = options.nodeArgs;
 		this.ipc = new MasterIPC(this);
-
+		this.shardList = options.shardList || 'auto';
+		
 		this.ipc.on('debug', msg => this._debug(`[IPC] ${msg}`));
 		this.ipc.on('error', err => this.emit(SharderEvents.ERROR, err));
 
@@ -81,6 +83,22 @@ export class ShardingManager extends EventEmitter {
 
 	public async spawn() {
 		if (isMaster) {
+
+			if (this.shardList !== 'auto') {
+				if (!Array.isArray(this.shardList)) throw new Error('shardList is an array.');
+				this.shardList = [...new Set(this.shardList)];
+				if (this.shardList.length < 1) throw new Error('shardList needs at least 1 ID.');
+				if (
+					this.shardList.some(shardID => typeof shardID !== 'number' || isNaN(shardID) || !Number.isInteger(shardID) || shardID < 0,)
+				) {
+					throw new Error('shardList is an array of positive integers.');
+				}
+			}
+
+			if (this.shardList === 'auto' || this.shardCount === 'auto') {
+				this.shardList = [...Array(this.shardCount).keys()];
+			}
+
 			if (this.shardCount === 'auto') {
 				this._debug('Fetching Session Endpoint');
 				const { shards: recommendShards } = await this._fetchSessionEndpoint();
@@ -91,13 +109,20 @@ export class ShardingManager extends EventEmitter {
 
 			this._debug(`Starting ${this.shardCount} Shards in ${this.clusterCount} Clusters!`);
 
-			if (this.shardCount < this.clusterCount) {
-				this.clusterCount = this.shardCount;
+			if (this.shardList.length < this.clusterCount) {
+				this.clusterCount = this.shardList.length;
 			}
 
-			const shardArray = [...Array(this.shardCount).keys()];
-			const shardTuple = Util.chunk(shardArray, this.clusterCount);
+			if (this.shardList.some(shardID => shardID >= this.shardCount)) {
+				throw new Error('Amount of shards bigger than the highest shardID in the shardList option.');
+			}
+			
+			this._debug(`Loading list of ${this.shardList.length} total shards`);
+
+			const shardTuple = Util.chunk(this.shardList, this.clusterCount);
 			const failed: Cluster[] = [];
+
+			console.log("shardTuple",shardTuple)
 
 			if (this.nodeArgs) setupMaster({ execArgv: this.nodeArgs });
 
