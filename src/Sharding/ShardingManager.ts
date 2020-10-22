@@ -122,8 +122,6 @@ export class ShardingManager extends EventEmitter {
 			const shardTuple = Util.chunk(this.shardList, this.clusterCount);
 			const failed: Cluster[] = [];
 
-			console.log("shardTuple",shardTuple)
-
 			if (this.nodeArgs) setupMaster({ execArgv: this.nodeArgs });
 
 			for (let index = 0; index < this.clusterCount; index++) {
