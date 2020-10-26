@@ -1,5 +1,4 @@
-dist/
+src/
 node_modules/
-typings/
 test/
 .env
