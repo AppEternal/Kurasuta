@@ -21,7 +21,10 @@ export class MasterIPC extends EventEmitter {
 	}
 
 	public async broadcast(code: string) {
-		const data = await this.server.broadcast({ op: IPCEvents.EVAL, d: code });
+		const data = await this.server.broadcast({ op: IPCEvents.EVAL, d: code })
+		.catch(function (error) {
+            throw Util.makeError(error);
+        });
 		let errored = data.filter(res => !res.success);
 		if (errored.length) {
 			errored = errored.map(msg => msg.d);
@@ -43,12 +46,12 @@ export class MasterIPC extends EventEmitter {
 
 	private async _broadcast(message: NodeMessage) {
 		const { d } = message.data;
-		try {
-			const data = await this.broadcast(d);
-			message.reply({ success: true, d: data });
-		} catch (error) {
-			message.reply({ success: false, d: { name: error.name, message: error.message, stack: error.stack } });
-		}
+		this.broadcast(d)
+        .catch(function (error) {
+            throw Util.makeError(error);
+        }).then(data => {
+            message.reply({ success: true, d: data });
+        });
 	}
 
 	private _ready(message: NodeMessage) {
